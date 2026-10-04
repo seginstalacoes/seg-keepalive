@@ -1,0 +1,28 @@
+name: Manter Supabase acordado
+
+on:
+  schedule:
+    - cron: '17 12 * * 1,4'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consultar o banco
+        run: |
+          code=$(curl -s -o /tmp/resposta.txt -w "%{http_code}" \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/keepalive?select=id&limit=1" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
+          echo "Resposta HTTP: $code"
+          cat /tmp/resposta.txt
+          if [ "$code" = "540" ]; then
+            echo "O projeto esta PAUSADO. Restaure no painel do Supabase."
+            exit 1
+          fi
+          if [ "$code" != "200" ]; then
+            echo "Falha ao consultar o banco."
+            exit 1
+          fi
+          echo "Banco respondeu. Projeto segue ativo."
